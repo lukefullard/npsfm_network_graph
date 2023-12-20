@@ -1,0 +1,58 @@
+<html>
+<head>
+<script>
+function loadSite() {
+  var site = document.getElementById("siteSelect").value;
+  var iframe = document.getElementById("siteFrame");
+  iframe.src = site;
+}
+</script>
+<style>
+/* Center the dropdown */
+select {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Increase the font size of the dropdown text */
+option {
+  font-size: 20px;
+}
+
+/* Add a small space between the dropdown and the iframe */
+iframe {
+  margin-top: 10px;
+}
+
+/* Make the dropdown box larger */
+select {
+  width: 250px;
+  height: 50px;
+}
+select {
+  font-size: 25px;
+  font-weight: bold;
+  text-align-last: center;
+}
+</style>
+</head>
+<body>
+<select id="siteSelect" onchange="loadSite()">
+  <option value="https://lukefullard.github.io/npsfm_network_graph/node_graph.html">Entire graph</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Abundance_WBnode_graph.html">Abundance_WB</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Accessibility_&_suitability_WBnode_graph.html">Accessibility_&_suitability_WB</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Diversity_of_Fishnode_graph.html">Diversity_of_Fish</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Habitats_FMUnode_graph.html">Habitats_FMU</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Health_&_Wellbeingnode_graph.html">Health_&_Wellbeing</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Hydroelectric_Supportnode_graph.html">Hydroelectric_Support</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Management_Whangaehu_FMUnode_graph.html">Management_Whangaehu_FMU</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Outstanding_Characteristicsnode_graph.html">Outstanding_Characteristics</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Relationship_&_Connectionnode_graph.html">Relationship_&_Connection</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Trophic_Statenode_graph.html">Trophic_State</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Trout_Habitatsnode_graph.html">Trout_Habitats</option>
+  <option value="https://lukefullard.github.io/npsfm_network_graph/Water_Allocationnode_graph.html">Water_Allocation</option>
+</select>
+<iframe id="siteFrame" src="https://lukefullard.github.io/npsfm_network_graph/node_graph.html" style="width:100%; height:750; border:none;"></iframe>
+</body>
+</html>
