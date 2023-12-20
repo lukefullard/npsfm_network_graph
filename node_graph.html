@@ -1,0 +1,781 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 500px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 500px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="Habitats FMU">Habitats FMU</option>
+                                
+                                    <option value="Accessibility & suitability WB">Accessibility & suitability WB</option>
+                                
+                                    <option value="Diversity of Fish">Diversity of Fish</option>
+                                
+                                    <option value="Outstanding Characteristics">Outstanding Characteristics</option>
+                                
+                                    <option value="Water Allocation">Water Allocation</option>
+                                
+                                    <option value="Trophic State">Trophic State</option>
+                                
+                                    <option value="Management Whangaehu FMU">Management Whangaehu FMU</option>
+                                
+                                    <option value="Relationship & Connection">Relationship & Connection</option>
+                                
+                                    <option value="Abundance WB">Abundance WB</option>
+                                
+                                    <option value="Trout Habitats">Trout Habitats</option>
+                                
+                                    <option value="Health & Wellbeing">Health & Wellbeing</option>
+                                
+                                    <option value="Hydroelectric Support">Hydroelectric Support</option>
+                                
+                                    <option value="Natural State">Natural State</option>
+                                
+                                    <option value="Natural Form & Character">Natural Form & Character</option>
+                                
+                                    <option value="EH Water Quality">EH Water Quality</option>
+                                
+                                    <option value="EH Water Quantity">EH Water Quantity</option>
+                                
+                                    <option value="EH Aquatic Life">EH Aquatic Life</option>
+                                
+                                    <option value="EH Ecological Processes">EH Ecological Processes</option>
+                                
+                                    <option value="EH Aquatic Habitats">EH Aquatic Habitats</option>
+                                
+                                    <option value="Threatened Species">Threatened Species</option>
+                                
+                                    <option value="Transport & Tauranga Waka">Transport & Tauranga Waka</option>
+                                
+                                    <option value="Meditation">Meditation</option>
+                                
+                                    <option value="Whakapapa">Whakapapa</option>
+                                
+                                    <option value="Spiritual Association">Spiritual Association</option>
+                                
+                                    <option value="Wai Tapu">Wai Tapu</option>
+                                
+                                    <option value="Mahinga Kai">Mahinga Kai</option>
+                                
+                                    <option value="Significant Sites">Significant Sites</option>
+                                
+                                    <option value="Human Contact">Human Contact</option>
+                                
+                                    <option value="Fishing">Fishing</option>
+                                
+                                    <option value="Amenity, Public Access">Amenity, Public Access</option>
+                                
+                                    <option value="Water Fowl">Water Fowl</option>
+                                
+                                    <option value="Drinking W Supply">Drinking W Supply</option>
+                                
+                                    <option value="Animal DW">Animal DW</option>
+                                
+                                    <option value="Domestic Food Supply">Domestic Food Supply</option>
+                                
+                                    <option value="Commercial Use">Commercial Use</option>
+                                
+                                    <option value="Irrigation">Irrigation</option>
+                                
+                                    <option value="Hydro-Electric Power Generation">Hydro-Electric Power Generation</option>
+                                
+                                    <option value="Flood Control & Drainage">Flood Control & Drainage</option>
+                                
+                                    <option value="Existing Infrastructure">Existing Infrastructure</option>
+                                
+                                    <option value="EO Ecosystem Health">EO Ecosystem Health</option>
+                                
+                                    <option value="EO Natural State">EO Natural State</option>
+                                
+                                    <option value="EO Water Quality">EO Water Quality</option>
+                                
+                                    <option value="EO Natural Form & Character">EO Natural Form & Character</option>
+                                
+                                    <option value="EO GW Quality & Quantity">EO GW Quality & Quantity</option>
+                                
+                                    <option value="EO SW Quantity">EO SW Quantity</option>
+                                
+                                    <option value="EO Threatened Species">EO Threatened Species</option>
+                                
+                                    <option value="EO Aquatic Life & Ecological Processes">EO Aquatic Life & Ecological Processes</option>
+                                
+                                    <option value="EO Aquatic Habitats">EO Aquatic Habitats</option>
+                                
+                                    <option value="EO Transport & Tauranga Waka">EO Transport & Tauranga Waka</option>
+                                
+                                    <option value="EO Significant Sites">EO Significant Sites</option>
+                                
+                                    <option value="EO Whakapapa">EO Whakapapa</option>
+                                
+                                    <option value="EO Wai Tapu">EO Wai Tapu</option>
+                                
+                                    <option value="EO Mahinga Kai">EO Mahinga Kai</option>
+                                
+                                    <option value="EO Human Contact">EO Human Contact</option>
+                                
+                                    <option value="EO Fishing">EO Fishing</option>
+                                
+                                    <option value="EO Use of FW Health">EO Use of FW Health</option>
+                                
+                                    <option value="EO Use of FW Economic">EO Use of FW Economic</option>
+                                
+                                    <option value="EO DW Supply">EO DW Supply</option>
+                                
+                                    <option value="EO Amenity, Public Access">EO Amenity, Public Access</option>
+                                
+                                    <option value="EO Waterfowl">EO Waterfowl</option>
+                                
+                                    <option value="EO Specified Vegetable Growing Areas">EO Specified Vegetable Growing Areas</option>
+                                
+                                    <option value="EO Hydro-Electric Power Generation">EO Hydro-Electric Power Generation</option>
+                                
+                                    <option value="EO Existing Infrastructure">EO Existing Infrastructure</option>
+                                
+                                    <option value="EO Flood Control & Drainage">EO Flood Control & Drainage</option>
+                                
+                                    <option value="EO Fish Passage">EO Fish Passage</option>
+                                
+                                    <option value="Periphyton (chlorophyll-a)">Periphyton (chlorophyll-a)</option>
+                                
+                                    <option value="Ammonia (toxicity)">Ammonia (toxicity)</option>
+                                
+                                    <option value="Nitrate (toxicity)">Nitrate (toxicity)</option>
+                                
+                                    <option value="Dissolved oxygen">Dissolved oxygen</option>
+                                
+                                    <option value="Suspended fine sediment (visual clarity)">Suspended fine sediment (visual clarity)</option>
+                                
+                                    <option value="Fish IBI">Fish IBI</option>
+                                
+                                    <option value="MCI Score">MCI Score</option>
+                                
+                                    <option value="QMCI Score">QMCI Score</option>
+                                
+                                    <option value="ASPM Score">ASPM Score</option>
+                                
+                                    <option value="Deposited fine sediment">Deposited fine sediment</option>
+                                
+                                    <option value="DRP">DRP</option>
+                                
+                                    <option value="Ecosystem Metabolism">Ecosystem Metabolism</option>
+                                
+                                    <option value="Dissolved Inorganic Nitrogen">Dissolved Inorganic Nitrogen</option>
+                                
+                                    <option value="Water Temperature">Water Temperature</option>
+                                
+                                    <option value="PeriWCC">PeriWCC</option>
+                                
+                                    <option value="Toxicants">Toxicants</option>
+                                
+                                    <option value="Particulate Organic Matter">Particulate Organic Matter</option>
+                                
+                                    <option value="Biological Oxygen Demand">Biological Oxygen Demand</option>
+                                
+                                    <option value="E.coli">E.coli</option>
+                                
+                                    <option value="Cyanobacteria (planktonic)">Cyanobacteria (planktonic)</option>
+                                
+                                    <option value="Cyanobacteria">Cyanobacteria</option>
+                                
+                                    <option value="Visual Clarity">Visual Clarity</option>
+                                
+                                    <option value="Nitrate (toxicity) 95th Percentile">Nitrate (toxicity) 95th Percentile</option>
+                                
+                                    <option value="Turbidity">Turbidity</option>
+                                
+                                    <option value="Indicators of faecal contamination">Indicators of faecal contamination</option>
+                                
+                                    <option value="pH">pH</option>
+                                
+                                    <option value="Ecosystem Health B">Ecosystem Health B</option>
+                                
+                                    <option value="Ecosystem Health C">Ecosystem Health C</option>
+                                
+                                    <option value="Ecosystem Health C PeriWCC">Ecosystem Health C PeriWCC</option>
+                                
+                                    <option value="Ecosystem Health d/s C">Ecosystem Health d/s C</option>
+                                
+                                    <option value="Ecosystem Health d/s <5g/m3">Ecosystem Health d/s <5g/m3</option>
+                                
+                                    <option value="Ecosystem Health d/s <1.5g/m3 or <2mg/m3">Ecosystem Health d/s <1.5g/m3 or <2mg/m3</option>
+                                
+                                    <option value="Threatened Species A">Threatened Species A</option>
+                                
+                                    <option value="Threatened Species B">Threatened Species B</option>
+                                
+                                    <option value="Threatened Species C">Threatened Species C</option>
+                                
+                                    <option value="Human Contact A">Human Contact A</option>
+                                
+                                    <option value="Human Contact C">Human Contact C</option>
+                                
+                                    <option value="Human Contact C PeriWCC">Human Contact C PeriWCC</option>
+                                
+                                    <option value="Human Contact above current state">Human Contact above current state</option>
+                                
+                                    <option value="Human Contact insufficient information">Human Contact insufficient information</option>
+                                
+                                    <option value="Tauranga waka and transport A">Tauranga waka and transport A</option>
+                                
+                                    <option value="Tauranga waka and transport C">Tauranga waka and transport C</option>
+                                
+                                    <option value="Tauranga waka and transport C PeriWCC">Tauranga waka and transport C PeriWCC</option>
+                                
+                                    <option value="Tauranga waka and transport above current state">Tauranga waka and transport above current state</option>
+                                
+                                    <option value="Tauranga waka and transport insufficient information">Tauranga waka and transport insufficient information</option>
+                                
+                                    <option value="Wai Tapu C">Wai Tapu C</option>
+                                
+                                    <option value="Wai Tapu fair">Wai Tapu fair</option>
+                                
+                                    <option value="Wai Tapu insufficient information">Wai Tapu insufficient information</option>
+                                
+                                    <option value="Mahinga Kai B">Mahinga Kai B</option>
+                                
+                                    <option value="Mahinga Kai C">Mahinga Kai C</option>
+                                
+                                    <option value="Mahinga Kai C (species dependent)">Mahinga Kai C (species dependent)</option>
+                                
+                                    <option value="Mahinga Kai C PeriWCC">Mahinga Kai C PeriWCC</option>
+                                
+                                    <option value="Mahinga Kai above current">Mahinga Kai above current</option>
+                                
+                                    <option value="Mahinga Kai insufficient information">Mahinga Kai insufficient information</option>
+                                
+                                    <option value="Natural Form & Character B">Natural Form & Character B</option>
+                                
+                                    <option value="Natural Form & Character <30%">Natural Form & Character <30%</option>
+                                
+                                    <option value="Amenity, Public Access B">Amenity, Public Access B</option>
+                                
+                                    <option value="Amenity, Public Access <30%">Amenity, Public Access <30%</option>
+                                
+                                    <option value="Fishing (TF1) A">Fishing (TF1) A</option>
+                                
+                                    <option value="Fishing (TF1) A PeriWCC">Fishing (TF1) A PeriWCC</option>
+                                
+                                    <option value="Fishing (TF1) above current">Fishing (TF1) above current</option>
+                                
+                                    <option value="Fishing (TF1) B">Fishing (TF1) B</option>
+                                
+                                    <option value="Fishing (TF2) A">Fishing (TF2) A</option>
+                                
+                                    <option value="Fishing (TF2) B">Fishing (TF2) B</option>
+                                
+                                    <option value="Fishing (TF2) above current">Fishing (TF2) above current</option>
+                                
+                                    <option value="Fishing (TF3) B">Fishing (TF3) B</option>
+                                
+                                    <option value="Fishing (TF3) C">Fishing (TF3) C</option>
+                                
+                                    <option value="Fishing (TF3) above current">Fishing (TF3) above current</option>
+                                
+                                    <option value="Human DW insufficient information">Human DW insufficient information</option>
+                                
+                                    <option value="Stock DW B">Stock DW B</option>
+                                
+                                    <option value="Stock DW maximum median value">Stock DW maximum median value</option>
+                                
+                                    <option value="Irrigation insufficient information">Irrigation insufficient information</option>
+                                
+                                    <option value="Commercial and industrial use insufficient information">Commercial and industrial use insufficient information</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Habitats FMU", "label": "Habitats FMU", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "The habitats of indigenous species are protected and restored and indigenous species can migrate naturally within the FMU"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Accessibility \u0026 suitability WB", "label": "Accessibility \u0026 suitability WB", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "Waterbodies are accessible and water quality is suitable for a range of customary and recreational purposes such as gathering and processing kai, swimming, waka ama, boating and healing"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Diversity of Fish", "label": "Diversity of Fish", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "The diversity of fish species is representative of what is naturally expected in that place. The abundance is sufficient to support resilient populations"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Outstanding Characteristics", "label": "Outstanding Characteristics", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "The outstanding wild and scenic characteristics and recreational, fisheries, and wildlife habitat features of the Upper and Middle Rangitikei River are protected (Water Conservation (Rangitikei River) Order 1993)"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Water Allocation", "label": "Water Allocation", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "Water allocation is managed in a manner that is efficient, responsive to climate change and that supports the existence of surrounding waterways and wetland ecosystems"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Trophic State", "label": "Trophic State", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "The trophic state (as indicator of Lakes Ecosystem Health) of Lake Horowhenua are improved"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Management Whangaehu FMU", "label": "Management Whangaehu FMU", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "Management of the Whangaehu FMU recognises and provides for Te Mana Tupua and Ng\u0101 Toka Tupua"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Relationship \u0026 Connection", "label": "Relationship \u0026 Connection", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "The ongoing relationship and connection of mana whenua to waterbodies, wai tapu, tauranga waka and other traditional sites associated with wai is provided for"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Abundance WB", "label": "Abundance WB", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "Waterbodies provide a range and abundance of resilient and accessible mahinga kai resources"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Trout Habitats", "label": "Trout Habitats", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "Where the habitats of (indigenous)(threatened) species aren\u0027t adversely affected, the habitat of trout is protected and maintained"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Health \u0026 Wellbeing", "label": "Health \u0026 Wellbeing", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "Where the health and wellbeing of the Manawat\u016b River and the drinking and washing water and mahinga kai needs of people are provided for, sustainable land and water practices will underpin the economic prosperity of the Region"}, {"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Hydroelectric Support", "label": "Hydroelectric Support", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "Sustainable land and water practices to support the national contribution of the xxx hydro-electric scheme"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Natural State", "label": "Natural State", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Natural State"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Natural Form \u0026 Character", "label": "Natural Form \u0026 Character", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Natural Form and Character"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "EH Water Quality", "label": "Water Quality", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Ecosystem Health Water Quality"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "EH Water Quantity", "label": "Water Quantity", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Ecosystem Health Water Quantity"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "EH Aquatic Life", "label": "Aquatic Life", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Ecosystem Health Aquatic Life"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "EH Ecological Processes", "label": "Ecological Processes", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Ecosystem Health Ecological Processes"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "EH Aquatic Habitats", "label": "Aquatic Habitats", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Ecosystem Health Aquatic Habitats"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Threatened Species", "label": "Threatened Species", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Threatened Species"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Transport \u0026 Tauranga Waka", "label": "Transport \u0026 Tauranga Waka", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Transport and tauranga waka"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Meditation", "label": "Meditation", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Meditation"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Whakapapa", "label": "Whakapapa", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Whakapapa"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Spiritual Association", "label": "Spiritual Association", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Spiritual Association"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Wai Tapu", "label": "Wai Tapu", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Wai Tapu"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Mahinga Kai", "label": "Mahinga Kai", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Mahinga Kai"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Significant Sites", "label": "Significant Sites", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Significant Sites"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Human Contact", "label": "Human Contact", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Human Contact"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Fishing", "label": "Fishing", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Fishing"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Amenity, Public Access", "label": "Amenity, Public Access", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Amenity, Public Access"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Water Fowl", "label": "Water Fowl", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Water Fowl"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Drinking W Supply", "label": "Drinking water supply", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Drinking water supply"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Animal DW", "label": "Animal drinking water", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Animal drinking water"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Domestic Food Supply", "label": "Domestic Food Supply", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Domestic Food Supply"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Commercial Use", "label": "Commercial and industrial use", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Commercial and industrial use"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Irrigation", "label": "Irrigation", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Irrigation, cultivation, and production of food and beverages"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Hydro-Electric Power Generation", "label": "Hydro-Electric Power Generation", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Hydro-Electric Power Generation"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Flood Control \u0026 Drainage", "label": "Flood Control \u0026 Drainage", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Flood Control \u0026 Drainage"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Existing Infrastructure", "label": "Existing Infrastructure", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Existing Infrastructure"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Ecosystem Health", "label": "Ecosystem Health", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Ecosystem Health"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Natural State", "label": "Natural State", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Natural State"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Water Quality", "label": "Water Quality", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Water Quality"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Natural Form \u0026 Character", "label": "Natural Form \u0026 Character", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Natural Form \u0026 Character"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO GW Quality \u0026 Quantity", "label": "GW Quality \u0026 Control", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO GW Quality \u0026 Quantity"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO SW Quantity", "label": "SW Quantity", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO SW Quantity"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Threatened Species", "label": "Threatened Species", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Threatened Species"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Aquatic Life \u0026 Ecological Processes", "label": "Aquatic Life \u0026 Ecological Processes", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Aquatic Life \u0026 Ecological Processes"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Aquatic Habitats", "label": "Aquatic Habitats", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Aquatic Habitats"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Transport \u0026 Tauranga Waka", "label": "Transport \u0026 Tauranga Waka", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Transport \u0026 Tauranga Waka"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Significant Sites", "label": "Significant Sites", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Significant Sites"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Whakapapa", "label": "Whakapapa", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Whakapapa"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Wai Tapu", "label": "Wai Tapu", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Wai Tapu"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Mahinga Kai", "label": "Mahinga Kai", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Mahinga Kai"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Human Contact", "label": "Human Contact", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Human Contact"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Fishing", "label": "Fishing", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Fishing"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Use of FW Health", "label": "Use of FW Health", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Use of FW Health"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Use of FW Economic", "label": "Use of FW Economic", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Use of FW Economic"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO DW Supply", "label": "DW Supply", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO DW Supply"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Amenity, Public Access", "label": "Amenity, Public Access", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Amenity, Public Access"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Waterfowl", "label": "Waterfowl", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Waterfowl"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Specified Vegetable Growing Areas", "label": "Specified Vegetable Growing Areas", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Specified Vegetable Growing Areas"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Hydro-Electric Power Generation", "label": "Hydro-Electric Power Generation", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Hydro-Electric Power Generation"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Existing Infrastructure", "label": "Existing Infrastructure", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Existing Infrastructure"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Flood Control \u0026 Drainage", "label": "Flood Control \u0026 Drainage", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Flood Control \u0026 Drainage"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Fish Passage", "label": "Fish Passage", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Fish Passage"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Periphyton (chlorophyll-a)", "label": "Periphyton", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Periphyton (chlorophyll-a)"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Ammonia (toxicity)", "label": "Ammonia", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Ammonia (toxicity)"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Nitrate (toxicity)", "label": "Nitrate", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Nitrate (toxicity)"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Dissolved oxygen", "label": "Dissolved oxygen", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Dissolved oxygen"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Suspended fine sediment (visual clarity)", "label": "Suspended fine sediment", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Suspended fine sediment (visual clarity)"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Fish IBI", "label": "Fish IBI", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Fish IBI"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "MCI Score", "label": "MCI Score", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Macroinvertebrate Community Index (MCI) Score"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "QMCI Score", "label": "QMCI Score", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Quantitative Macroinvertebrate Community Index (QMCI) Score"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "ASPM Score", "label": "APSM Score", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Macroinvertebrate Average Score Per Metric"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Deposited fine sediment", "label": "Deposited fine sediment", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Deposited fine sediment"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "DRP", "label": "DRP", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Dissolved reactive phosphorus (DRP)"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Ecosystem Metabolism", "label": "Ecosystem Metabolism", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Ecosystem Metabolism"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Dissolved Inorganic Nitrogen", "label": "Dissolved Inorganic Nitrogen", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Dissolved Inorganic Nitrogen"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Water Temperature", "label": "Water Temperature", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Water Temperature"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "PeriWCC", "label": "PeriWCC", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Periphyton weighted composite cover (PeriWCC)"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Toxicants", "label": "Toxicants", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Toxicants"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Particulate Organic Matter", "label": "Particulate Organic Matter", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Particulate Organic Matter"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Biological Oxygen Demand", "label": "Biological Oxygen Demand", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Biological Oxygen Demand"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "E.coli", "label": "E.coli", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "E.coli"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Cyanobacteria (planktonic)", "label": "Cyanobacteria (planktonic)", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Cyanobacteria (planktonic)"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Cyanobacteria", "label": "Cyanobacteria", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Cyanobacteria"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Visual Clarity", "label": "Visual Clarity", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Visual Clarity"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Nitrate (toxicity) 95th Percentile", "label": "Nitrate (toxicity) 95th Percentile", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Nitrate (toxicity) 95th Percentile"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Turbidity", "label": "Turbidity", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Turbidity (lab meaure)"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Indicators of faecal contamination", "label": "Indicators of faecal contamination", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Indicators of faecal contamination"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "pH", "label": "pH", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "pH"}, {"borderWidth": 2, "color": "#aed77a", "font": {"color": "white"}, "group": "Targets", "id": "Ecosystem Health B", "label": "Ecosystem Health B", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Ecosystem Health B"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Ecosystem Health C", "label": "Ecosystem Health C", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Ecosystem Health C"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Ecosystem Health C PeriWCC", "label": "Ecosystem Health C PeriWCC", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Ecosystem Health C (using PeriWCC ecosystem health bands)"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Ecosystem Health d/s C", "label": "Ecosystem Health d/s C", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Ecosystem Health downstream of point source discharges C"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Ecosystem Health d/s \u003c5g/m3", "label": "Ecosystem Health d/s \u003c5g/m3", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Ecosystem Health downstream of point source discharges \u003c5g/m3 (all flows)"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Ecosystem Health d/s \u003c1.5g/m3 or \u003c2mg/m3", "label": "Ecosystem Health d/s \u003c1.5g/m3 or \u003c2mg/m3", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Ecosystem Health downstream of point source discharges \u003c 1.5 g/m3 for sub-zones with a DO target of A, \u003c 2 g/m3 for all other sub-zones (all flows)"}, {"borderWidth": 2, "color": "#2abeff", "font": {"color": "white"}, "group": "Targets", "id": "Threatened Species A", "label": "Threatened Species A", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Threatened Species A"}, {"borderWidth": 2, "color": "#aed77a", "font": {"color": "white"}, "group": "Targets", "id": "Threatened Species B", "label": "Threatened Species B", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Threatened Species B"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Threatened Species C", "label": "Threatened Species C", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Threatened Species C"}, {"borderWidth": 2, "color": "#2abeff", "font": {"color": "white"}, "group": "Targets", "id": "Human Contact A", "label": "Human Contact A", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Human Contact A (when primary contact recreation targets apply)"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Human Contact C", "label": "Human Contact C", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Human Contact C"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Human Contact C PeriWCC", "label": "Human Contact C PeriWCC", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Human Contact C (using PeriWCC fishing bands)"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Human Contact above current state", "label": "Human Contact above current state", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Human Contact above current state unless A band is already met. Fair for primary human contact targets"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Human Contact insufficient information", "label": "Human Contact insufficient information", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Human Contact insufficient information to recommend targets"}, {"borderWidth": 2, "color": "#2abeff", "font": {"color": "white"}, "group": "Targets", "id": "Tauranga waka and transport A", "label": "Tauranga waka and transport A", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Tauranga waka and transport (when primary contact recreation targets apply)"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Tauranga waka and transport C", "label": "Tauranga waka and transport C", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Tauranga waka and transport C"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Tauranga waka and transport C PeriWCC", "label": "Tauranga waka and transport C PeriWCC", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Tauranga waka and transport C (using PeriWCC fishing bands)"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Tauranga waka and transport above current state", "label": "Tauranga waka and transport above current state", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Tauranga waka and transport above current state unless A band is already met. Fair for primary human contact targets"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Tauranga waka and transport insufficient information", "label": "Tauranga waka and transport insufficient information", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Tauranga waka and transport insufficient information to recommend targets"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Wai Tapu C", "label": "Wai Tapu C", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Wai Tapu C (site-dependent based on specific activities)"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Wai Tapu fair", "label": "Wai Tapu fair", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Wai Tapu fair for primary contact recreation targets"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Wai Tapu insufficient information", "label": "Wai Tapu insufficient information", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Wai Tapu insufficient information to recommend targets"}, {"borderWidth": 2, "color": "#aed77a", "font": {"color": "white"}, "group": "Targets", "id": "Mahinga Kai B", "label": "Mahinga Kai B", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Mahinga Kai B"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Mahinga Kai C", "label": "Mahinga Kai C", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Mahinga Kai C"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Mahinga Kai C (species dependent)", "label": "Mahinga Kai C (species dependent)", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Mahinga Kai C (species dependent)"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Mahinga Kai C PeriWCC", "label": "Mahinga Kai C PeriWCC", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Mahinga Kai C (using PeriWCC fishing bands)"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Mahinga Kai above current", "label": "Mahinga Kai above current", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Mahinga Kai above current state unless the A band is already met. \u0091Fair\u0092 for primary contact recreation targets"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Mahinga Kai insufficient information", "label": "Mahinga Kai insufficient information", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Mahinga Kai insufficient information to recommend targets"}, {"borderWidth": 2, "color": "#aed77a", "font": {"color": "white"}, "group": "Targets", "id": "Natural Form \u0026 Character B", "label": "Natural Form \u0026 Character B", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Natural Form \u0026 Character B"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Natural Form \u0026 Character \u003c30%", "label": "Natural Form \u0026 Character \u003c30%", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Natural Form \u0026 Character \u003c30% November to April"}, {"borderWidth": 2, "color": "#aed77a", "font": {"color": "white"}, "group": "Targets", "id": "Amenity, Public Access B", "label": "Amenity, Public Access B", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Amenity, Public Access B"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Amenity, Public Access \u003c30%", "label": "Amenity, Public Access \u003c30%", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Amenity, Public Access \u003c30% November to April"}, {"borderWidth": 2, "color": "#2abeff", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF1) A", "label": "Fishing (TF1) A", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (TF1) A"}, {"borderWidth": 2, "color": "#2abeff", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF1) A PeriWCC", "label": "Fishing (TF1) A PeriWCC", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (TF1) A (using PeriWCC fishing bands)"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF1) above current", "label": "Fishing (TF1) above current", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (TF1) above current state unless the A band is already met for year-round targets"}, {"borderWidth": 2, "color": "#aed77a", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF1) B", "label": "Fishing (TF1) B", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (TF1) B"}, {"borderWidth": 2, "color": "#2abeff", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF2) A", "label": "Fishing (TF2) A", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (TF2) A"}, {"borderWidth": 2, "color": "#aed77a", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF2) B", "label": "Fishing (TF2) B", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (TF2) B"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF2) above current", "label": "Fishing (TF2) above current", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (T21) above current state unless the A band is already met for year-round targets"}, {"borderWidth": 2, "color": "#aed77a", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF3) B", "label": "Fishing (TF3) B", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (TF3) B"}, {"borderWidth": 2, "color": "#e6e600", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF3) C", "label": "Fishing (TF3) C", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (TF3) C"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Fishing (TF3) above current", "label": "Fishing (TF3) above current", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Fishing (TF3) above current state unless the A band is already met for year-round targets"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Human DW insufficient information", "label": "Human DW insufficient information", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Human drinking water supply insufficient information to recommend targets, but see  New Zealand (2005) Drinking-water Standards for New Zealand"}, {"borderWidth": 2, "color": "#aed77a", "font": {"color": "white"}, "group": "Targets", "id": "Stock DW B", "label": "Stock DW B", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Stock drinking water supply B"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Stock DW maximum median value", "label": "Stock DW maximum median value", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Stock drinking water supply maximum median value of 100/100 mL for faecal coliforms 80th percentile of 400/100 mL for faecal coliforms"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Irrigation insufficient information", "label": "Irrigation insufficient information", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Irrigation, cultivation and production of food and beverages isufficient information to recommend targets. Requirements likely vary and it is anticipated that this value will be provided for by protecting other values insufficient information"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Commercial and industrial use insufficient information", "label": "Commercial and industrial use insufficient information", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Commercial and industrial use insufficient information to recommend targets. Requirements likely vary and it is anticipated that this value will be provided for by protecting other values"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "Abundance WB", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Accessibility \u0026 suitability WB", "to": "Wai Tapu"}, {"arrows": "to", "from": "Accessibility \u0026 suitability WB", "to": "Transport \u0026 Tauranga Waka"}, {"arrows": "to", "from": "Accessibility \u0026 suitability WB", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Accessibility \u0026 suitability WB", "to": "Human Contact"}, {"arrows": "to", "from": "Accessibility \u0026 suitability WB", "to": "Amenity, Public Access"}, {"arrows": "to", "from": "Accessibility \u0026 suitability WB", "to": "Water Fowl"}, {"arrows": "to", "from": "Amenity, Public Access", "to": "EO Amenity, Public Access"}, {"arrows": "to", "from": "Animal DW", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Commercial Use", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Diversity of Fish", "to": "Natural State"}, {"arrows": "to", "from": "Domestic Food Supply", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Domestic Food Supply", "to": "EO Specified Vegetable Growing Areas"}, {"arrows": "to", "from": "Drinking W Supply", "to": "EO Use of FW Health"}, {"arrows": "to", "from": "EH Aquatic Habitats", "to": "EO Aquatic Habitats"}, {"arrows": "to", "from": "EH Aquatic Life", "to": "EO Aquatic Life \u0026 Ecological Processes"}, {"arrows": "to", "from": "EH Ecological Processes", "to": "EO Aquatic Life \u0026 Ecological Processes"}, {"arrows": "to", "from": "EH Water Quality", "to": "EO GW Quality \u0026 Quantity"}, {"arrows": "to", "from": "EH Water Quality", "to": "EO Water Quality"}, {"arrows": "to", "from": "EH Water Quantity", "to": "EO GW Quality \u0026 Quantity"}, {"arrows": "to", "from": "EH Water Quantity", "to": "EO SW Quantity"}, {"arrows": "to", "from": "Existing Infrastructure", "to": "EO Existing Infrastructure"}, {"arrows": "to", "from": "Fishing", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Fishing", "to": "EO Fishing"}, {"arrows": "to", "from": "Fishing", "to": "EO Human Contact"}, {"arrows": "to", "from": "Flood Control \u0026 Drainage", "to": "EO Flood Control \u0026 Drainage"}, {"arrows": "to", "from": "Habitats FMU", "to": "EH Aquatic Habitats"}, {"arrows": "to", "from": "Habitats FMU", "to": "Natural State"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Commercial Use"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Animal DW"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Domestic Food Supply"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Irrigation"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Hydro-Electric Power Generation"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Flood Control \u0026 Drainage"}, {"arrows": "to", "from": "Human Contact", "to": "EO Human Contact"}, {"arrows": "to", "from": "Human Contact", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Hydro-Electric Power Generation", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Hydro-Electric Power Generation", "to": "EO Hydro-Electric Power Generation"}, {"arrows": "to", "from": "Irrigation", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Mahinga Kai", "to": "EO Mahinga Kai"}, {"arrows": "to", "from": "Mahinga Kai", "to": "EO Human Contact"}, {"arrows": "to", "from": "Meditation", "to": "EO Natural Form \u0026 Character"}, {"arrows": "to", "from": "Meditation", "to": "EO Human Contact"}, {"arrows": "to", "from": "Meditation", "to": "EO Amenity, Public Access"}, {"arrows": "to", "from": "Natural Form \u0026 Character", "to": "EO Natural Form \u0026 Character"}, {"arrows": "to", "from": "Natural State", "to": "EO Natural State"}, {"arrows": "to", "from": "Outstanding Characteristics", "to": "Natural Form \u0026 Character"}, {"arrows": "to", "from": "Outstanding Characteristics", "to": "EH Aquatic Life"}, {"arrows": "to", "from": "Outstanding Characteristics", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Relationship \u0026 Connection", "to": "Meditation"}, {"arrows": "to", "from": "Relationship \u0026 Connection", "to": "Whakapapa"}, {"arrows": "to", "from": "Relationship \u0026 Connection", "to": "Wai Tapu"}, {"arrows": "to", "from": "Relationship \u0026 Connection", "to": "Significant Sites"}, {"arrows": "to", "from": "Relationship \u0026 Connection", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Relationship \u0026 Connection", "to": "Spiritual Association"}, {"arrows": "to", "from": "Spiritual Association", "to": "EO Natural Form \u0026 Character"}, {"arrows": "to", "from": "Spiritual Association", "to": "EO Human Contact"}, {"arrows": "to", "from": "Spiritual Association", "to": "EO Mahinga Kai"}, {"arrows": "to", "from": "Spiritual Association", "to": "EO Amenity, Public Access"}, {"arrows": "to", "from": "Transport \u0026 Tauranga Waka", "to": "EO Transport \u0026 Tauranga Waka"}, {"arrows": "to", "from": "Transport \u0026 Tauranga Waka", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Trophic State", "to": "EH Ecological Processes"}, {"arrows": "to", "from": "Trout Habitats", "to": "Fishing"}, {"arrows": "to", "from": "Wai Tapu", "to": "EO Wai Tapu"}, {"arrows": "to", "from": "Water Allocation", "to": "EH Water Quantity"}, {"arrows": "to", "from": "Periphyton (chlorophyll-a)", "to": "EH Aquatic Life"}, {"arrows": "to", "from": "Ammonia (toxicity)", "to": "EH Water Quality"}, {"arrows": "to", "from": "Nitrate (toxicity)", "to": "EH Water Quality"}, {"arrows": "to", "from": "Dissolved oxygen", "to": "EH Water Quality"}, {"arrows": "to", "from": "Suspended fine sediment (visual clarity)", "to": "EH Water Quality"}, {"arrows": "to", "from": "Fish IBI", "to": "EH Aquatic Life"}, {"arrows": "to", "from": "MCI Score", "to": "EH Aquatic Life"}, {"arrows": "to", "from": "QMCI Score", "to": "EH Aquatic Life"}, {"arrows": "to", "from": "ASPM Score", "to": "EH Aquatic Life"}, {"arrows": "to", "from": "Deposited fine sediment", "to": "EH Aquatic Habitats"}, {"arrows": "to", "from": "DRP", "to": "EH Water Quality"}, {"arrows": "to", "from": "Ecosystem Metabolism", "to": "EH Ecological Processes"}, {"arrows": "to", "from": "Dissolved Inorganic Nitrogen", "to": "EH Water Quality"}, {"arrows": "to", "from": "Water Temperature", "to": "EH Water Quality"}, {"arrows": "to", "from": "PeriWCC", "to": "EH Aquatic Life"}, {"arrows": "to", "from": "Toxicants", "to": "EH Water Quality"}, {"arrows": "to", "from": "Dissolved oxygen", "to": "EH Water Quality"}, {"arrows": "to", "from": "Particulate Organic Matter", "to": "EH Water Quality"}, {"arrows": "to", "from": "Biological Oxygen Demand", "to": "EH Ecological Processes"}, {"arrows": "to", "from": "E.coli", "to": "Human Contact"}, {"arrows": "to", "from": "E.coli", "to": "Transport \u0026 Tauranga Waka"}, {"arrows": "to", "from": "Cyanobacteria (planktonic)", "to": "Human Contact"}, {"arrows": "to", "from": "Cyanobacteria (planktonic)", "to": "Transport \u0026 Tauranga Waka"}, {"arrows": "to", "from": "Cyanobacteria", "to": "Human Contact"}, {"arrows": "to", "from": "Cyanobacteria", "to": "Transport \u0026 Tauranga Waka"}, {"arrows": "to", "from": "Visual Clarity", "to": "Human Contact"}, {"arrows": "to", "from": "Visual Clarity", "to": "Transport \u0026 Tauranga Waka"}, {"arrows": "to", "from": "PeriWCC", "to": "Human Contact"}, {"arrows": "to", "from": "PeriWCC", "to": "Transport \u0026 Tauranga Waka"}, {"arrows": "to", "from": "E.coli", "to": "Wai Tapu"}, {"arrows": "to", "from": "Visual Clarity", "to": "Wai Tapu"}, {"arrows": "to", "from": "Cyanobacteria", "to": "Wai Tapu"}, {"arrows": "to", "from": "Periphyton (chlorophyll-a)", "to": "Threatened Species"}, {"arrows": "to", "from": "Ammonia (toxicity)", "to": "Threatened Species"}, {"arrows": "to", "from": "Nitrate (toxicity)", "to": "Threatened Species"}, {"arrows": "to", "from": "Dissolved oxygen", "to": "Threatened Species"}, {"arrows": "to", "from": "Suspended fine sediment (visual clarity)", "to": "Threatened Species"}, {"arrows": "to", "from": "MCI Score", "to": "Threatened Species"}, {"arrows": "to", "from": "QMCI Score", "to": "Threatened Species"}, {"arrows": "to", "from": "ASPM Score", "to": "Threatened Species"}, {"arrows": "to", "from": "Deposited fine sediment", "to": "Threatened Species"}, {"arrows": "to", "from": "Ecosystem Metabolism", "to": "Threatened Species"}, {"arrows": "to", "from": "Dissolved Inorganic Nitrogen", "to": "Threatened Species"}, {"arrows": "to", "from": "Water Temperature", "to": "Threatened Species"}, {"arrows": "to", "from": "Toxicants", "to": "Threatened Species"}, {"arrows": "to", "from": "Periphyton (chlorophyll-a)", "to": "Mahinga Kai"}, {"arrows": "to", "from": "PeriWCC", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Ammonia (toxicity)", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Nitrate (toxicity)", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Dissolved oxygen", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Suspended fine sediment (visual clarity)", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Cyanobacteria", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Deposited fine sediment", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Dissolved oxygen", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Water Temperature", "to": "Mahinga Kai"}, {"arrows": "to", "from": "MCI Score", "to": "Mahinga Kai"}, {"arrows": "to", "from": "E.coli", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Toxicants", "to": "Mahinga Kai"}, {"arrows": "to", "from": "Periphyton (chlorophyll-a)", "to": "Natural Form \u0026 Character"}, {"arrows": "to", "from": "Periphyton (chlorophyll-a)", "to": "Amenity, Public Access"}, {"arrows": "to", "from": "PeriWCC", "to": "Natural Form \u0026 Character"}, {"arrows": "to", "from": "PeriWCC", "to": "Amenity, Public Access"}, {"arrows": "to", "from": "Deposited fine sediment", "to": "Natural Form \u0026 Character"}, {"arrows": "to", "from": "Deposited fine sediment", "to": "Amenity, Public Access"}, {"arrows": "to", "from": "Cyanobacteria", "to": "Drinking W Supply"}, {"arrows": "to", "from": "Dissolved oxygen", "to": "Fishing"}, {"arrows": "to", "from": "Water Temperature", "to": "Fishing"}, {"arrows": "to", "from": "Suspended fine sediment (visual clarity)", "to": "Fishing"}, {"arrows": "to", "from": "MCI Score", "to": "Fishing"}, {"arrows": "to", "from": "E.coli", "to": "Fishing"}, {"arrows": "to", "from": "QMCI Score", "to": "Fishing"}, {"arrows": "to", "from": "Periphyton (chlorophyll-a)", "to": "Fishing"}, {"arrows": "to", "from": "Dissolved Inorganic Nitrogen", "to": "Fishing"}, {"arrows": "to", "from": "DRP", "to": "Fishing"}, {"arrows": "to", "from": "Ammonia (toxicity)", "to": "Fishing"}, {"arrows": "to", "from": "Toxicants", "to": "Fishing"}, {"arrows": "to", "from": "Nitrate (toxicity) 95th Percentile", "to": "Fishing"}, {"arrows": "to", "from": "Deposited fine sediment", "to": "Fishing"}, {"arrows": "to", "from": "PeriWCC", "to": "Fishing"}, {"arrows": "to", "from": "Turbidity", "to": "Fishing"}, {"arrows": "to", "from": "Indicators of faecal contamination", "to": "Animal DW"}, {"arrows": "to", "from": "Toxicants", "to": "Animal DW"}, {"arrows": "to", "from": "Periphyton (chlorophyll-a)", "to": "Irrigation"}, {"arrows": "to", "from": "Ammonia (toxicity)", "to": "Irrigation"}, {"arrows": "to", "from": "Dissolved oxygen", "to": "Irrigation"}, {"arrows": "to", "from": "Suspended fine sediment (visual clarity)", "to": "Irrigation"}, {"arrows": "to", "from": "E.coli", "to": "Irrigation"}, {"arrows": "to", "from": "Toxicants", "to": "Irrigation"}, {"arrows": "to", "from": "Periphyton (chlorophyll-a)", "to": "Commercial Use"}, {"arrows": "to", "from": "Ammonia (toxicity)", "to": "Commercial Use"}, {"arrows": "to", "from": "Dissolved oxygen", "to": "Commercial Use"}, {"arrows": "to", "from": "Suspended fine sediment (visual clarity)", "to": "Commercial Use"}, {"arrows": "to", "from": "E.coli", "to": "Commercial Use"}, {"arrows": "to", "from": "Toxicants", "to": "Commercial Use"}, {"arrows": "to", "from": "Turbidity", "to": "Hydro-Electric Power Generation"}, {"arrows": "to", "from": "EO Ecosystem Health", "to": "Ecosystem Health B"}, {"arrows": "to", "from": "EO Ecosystem Health", "to": "Ecosystem Health C"}, {"arrows": "to", "from": "EO Ecosystem Health", "to": "Ecosystem Health C PeriWCC"}, {"arrows": "to", "from": "EO Ecosystem Health", "to": "Ecosystem Health d/s C"}, {"arrows": "to", "from": "EO Ecosystem Health", "to": "Ecosystem Health d/s \u003c5g/m3"}, {"arrows": "to", "from": "EO Ecosystem Health", "to": "Ecosystem Health d/s \u003c1.5g/m3 or \u003c2mg/m3"}, {"arrows": "to", "from": "Ecosystem Health B", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Ecosystem Health B", "to": "Nitrate (toxicity)"}, {"arrows": "to", "from": "Ecosystem Health B", "to": "Toxicants"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "Fish IBI"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "MCI Score"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "QMCI Score"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "ASPM Score"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "Deposited fine sediment"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "DRP"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "Water Temperature"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "Dissolved Inorganic Nitrogen"}, {"arrows": "to", "from": "Ecosystem Health C", "to": "pH"}, {"arrows": "to", "from": "Ecosystem Health C PeriWCC", "to": "PeriWCC"}, {"arrows": "to", "from": "Ecosystem Health d/s C", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Ecosystem Health d/s \u003c5g/m3", "to": "Particulate Organic Matter"}, {"arrows": "to", "from": "Ecosystem Health d/s \u003c1.5g/m3 or \u003c2mg/m3", "to": "Biological Oxygen Demand"}, {"arrows": "to", "from": "EO Threatened Species", "to": "Threatened Species A"}, {"arrows": "to", "from": "EO Threatened Species", "to": "Threatened Species B"}, {"arrows": "to", "from": "EO Threatened Species", "to": "Threatened Species C"}, {"arrows": "to", "from": "Threatened Species A", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Threatened Species A", "to": "Nitrate (toxicity)"}, {"arrows": "to", "from": "Threatened Species A", "to": "Toxicants"}, {"arrows": "to", "from": "Threatened Species B", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Threatened Species B", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Threatened Species B", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Threatened Species B", "to": "Deposited fine sediment"}, {"arrows": "to", "from": "Threatened Species B", "to": "Water Temperature"}, {"arrows": "to", "from": "Threatened Species B", "to": "Dissolved Inorganic Nitrogen"}, {"arrows": "to", "from": "Threatened Species C", "to": "MCI Score"}, {"arrows": "to", "from": "Threatened Species C", "to": "QMCI Score"}, {"arrows": "to", "from": "Threatened Species C", "to": "ASPM Score"}, {"arrows": "to", "from": "EO Human Contact", "to": "Human Contact A"}, {"arrows": "to", "from": "EO Human Contact", "to": "Human Contact C"}, {"arrows": "to", "from": "EO Human Contact", "to": "Human Contact C PeriWCC"}, {"arrows": "to", "from": "EO Human Contact", "to": "Human Contact above current state"}, {"arrows": "to", "from": "EO Human Contact", "to": "Human Contact insufficient information"}, {"arrows": "to", "from": "Human Contact A", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Human Contact C", "to": "Cyanobacteria (planktonic)"}, {"arrows": "to", "from": "Human Contact C PeriWCC", "to": "PeriWCC"}, {"arrows": "to", "from": "Human Contact above current state", "to": "E.coli"}, {"arrows": "to", "from": "Human Contact insufficient information", "to": "Cyanobacteria"}, {"arrows": "to", "from": "EO Transport \u0026 Tauranga Waka", "to": "Tauranga waka and transport A"}, {"arrows": "to", "from": "EO Transport \u0026 Tauranga Waka", "to": "Tauranga waka and transport C"}, {"arrows": "to", "from": "EO Transport \u0026 Tauranga Waka", "to": "Tauranga waka and transport C PeriWCC"}, {"arrows": "to", "from": "EO Transport \u0026 Tauranga Waka", "to": "Tauranga waka and transport above current state"}, {"arrows": "to", "from": "EO Transport \u0026 Tauranga Waka", "to": "Tauranga waka and transport insufficient information"}, {"arrows": "to", "from": "Tauranga waka and transport A", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Tauranga waka and transport C", "to": "Cyanobacteria (planktonic)"}, {"arrows": "to", "from": "Tauranga waka and transport C PeriWCC", "to": "PeriWCC"}, {"arrows": "to", "from": "Tauranga waka and transport above current state", "to": "E.coli"}, {"arrows": "to", "from": "Tauranga waka and transport insufficient information", "to": "Cyanobacteria"}, {"arrows": "to", "from": "EO Wai Tapu", "to": "Wai Tapu C"}, {"arrows": "to", "from": "EO Wai Tapu", "to": "Wai Tapu fair"}, {"arrows": "to", "from": "EO Wai Tapu", "to": "Wai Tapu insufficient information"}, {"arrows": "to", "from": "Wai Tapu C", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Wai Tapu fair", "to": "E.coli"}, {"arrows": "to", "from": "Wai Tapu insufficient information", "to": "Cyanobacteria"}, {"arrows": "to", "from": "EO Mahinga Kai", "to": "Mahinga Kai B"}, {"arrows": "to", "from": "EO Mahinga Kai", "to": "Mahinga Kai C"}, {"arrows": "to", "from": "EO Mahinga Kai", "to": "Mahinga Kai C (species dependent)"}, {"arrows": "to", "from": "EO Mahinga Kai", "to": "Mahinga Kai C PeriWCC"}, {"arrows": "to", "from": "EO Mahinga Kai", "to": "Mahinga Kai above current"}, {"arrows": "to", "from": "EO Mahinga Kai", "to": "Mahinga Kai insufficient information"}, {"arrows": "to", "from": "Mahinga Kai B", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Mahinga Kai B", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Mahinga Kai B", "to": "Nitrate (toxicity)"}, {"arrows": "to", "from": "Mahinga Kai B", "to": "Toxicants"}, {"arrows": "to", "from": "Mahinga Kai C", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Mahinga Kai C", "to": "MCI Score"}, {"arrows": "to", "from": "Mahinga Kai C", "to": "Deposited fine sediment"}, {"arrows": "to", "from": "Mahinga Kai C", "to": "Water Temperature"}, {"arrows": "to", "from": "Mahinga Kai C (species dependent)", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Mahinga Kai C PeriWCC", "to": "PeriWCC"}, {"arrows": "to", "from": "Mahinga Kai above current", "to": "E.coli"}, {"arrows": "to", "from": "Mahinga Kai insufficient information", "to": "Cyanobacteria"}, {"arrows": "to", "from": "EO Natural Form \u0026 Character", "to": "Natural Form \u0026 Character B"}, {"arrows": "to", "from": "EO Natural Form \u0026 Character", "to": "Natural Form \u0026 Character \u003c30%"}, {"arrows": "to", "from": "Natural Form \u0026 Character B", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Natural Form \u0026 Character B", "to": "Deposited fine sediment"}, {"arrows": "to", "from": "Natural Form \u0026 Character \u003c30%", "to": "PeriWCC"}, {"arrows": "to", "from": "EO Amenity, Public Access", "to": "Amenity, Public Access B"}, {"arrows": "to", "from": "EO Amenity, Public Access", "to": "Amenity, Public Access \u003c30%"}, {"arrows": "to", "from": "Amenity, Public Access B", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Amenity, Public Access B", "to": "Deposited fine sediment"}, {"arrows": "to", "from": "Amenity, Public Access \u003c30%", "to": "PeriWCC"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF1) A"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF1) A PeriWCC"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF1) above current"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF1) B"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "Nitrate (toxicity)"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "MCI Score"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "QMCI Score"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "Deposited fine sediment"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "DRP"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "Water Temperature"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "Toxicants"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "Dissolved Inorganic Nitrogen"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Fishing (TF1) A PeriWCC", "to": "PeriWCC"}, {"arrows": "to", "from": "Fishing (TF1) above current", "to": "E.coli"}, {"arrows": "to", "from": "Fishing (TF1) A", "to": "Turbidity"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF2) A"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF2) B"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF2) above current"}, {"arrows": "to", "from": "Fishing (TF2) A", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Fishing (TF2) A", "to": "MCI Score"}, {"arrows": "to", "from": "Fishing (TF2) A", "to": "QMCI Score"}, {"arrows": "to", "from": "Fishing (TF2) A", "to": "Water Temperature"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "Turbidity"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "Nitrate (toxicity)"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "Deposited fine sediment"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "DRP"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "PeriWCC"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "Toxicants"}, {"arrows": "to", "from": "Fishing (TF1) B", "to": "Dissolved Inorganic Nitrogen"}, {"arrows": "to", "from": "Fishing (TF2) above current", "to": "E.coli"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF3) B"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF3) C"}, {"arrows": "to", "from": "EO Fishing", "to": "Fishing (TF3) above current"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "Nitrate (toxicity)"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "MCI Score"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "QMCI Score"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "Deposited fine sediment"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "DRP"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "Dissolved Inorganic Nitrogen"}, {"arrows": "to", "from": "Fishing (TF3) B", "to": "Toxicants"}, {"arrows": "to", "from": "Fishing (TF3) C", "to": "Turbidity"}, {"arrows": "to", "from": "Fishing (TF3) C", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Fishing (TF3) C", "to": "Water Temperature"}, {"arrows": "to", "from": "Fishing (TF3) C", "to": "PeriWCC"}, {"arrows": "to", "from": "Fishing (TF3) above current", "to": "E.coli"}, {"arrows": "to", "from": "EO DW Supply", "to": "Human DW insufficient information"}, {"arrows": "to", "from": "Human DW insufficient information", "to": "Cyanobacteria"}, {"arrows": "to", "from": "EO DW Supply", "to": "Stock DW B"}, {"arrows": "to", "from": "EO DW Supply", "to": "Stock DW maximum median value"}, {"arrows": "to", "from": "Stock DW B", "to": "Toxicants"}, {"arrows": "to", "from": "Stock DW maximum median value", "to": "Indicators of faecal contamination"}, {"arrows": "to", "from": "EO Use of FW Economic", "to": "Irrigation insufficient information"}, {"arrows": "to", "from": "EO Use of FW Economic", "to": "Commercial and industrial use insufficient information"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Toxicants"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "E.coli"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Toxicants"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "E.coli"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true,
+        "filter": [
+            "physics"
+        ]
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "layout": {
+        "hierarchical": {
+            "blockShifting": true,
+            "edgeMinimization": true,
+            "enabled": true,
+            "levelSeparation": 150,
+            "parentCentralization": true,
+            "sortMethod": "hubsize",
+            "treeSpacing": 200
+        },
+        "improvedLayout": true,
+        "randomSeed": 0
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>

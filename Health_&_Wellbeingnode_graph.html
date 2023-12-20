@@ -1,0 +1,448 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 500px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+             #config {
+                 float: left;
+                 width: 400px;
+                 height: 600px;
+             }
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="Health & Wellbeing">Health & Wellbeing</option>
+                                
+                                    <option value="Animal DW">Animal DW</option>
+                                
+                                    <option value="Domestic Food Supply">Domestic Food Supply</option>
+                                
+                                    <option value="Commercial Use">Commercial Use</option>
+                                
+                                    <option value="Irrigation">Irrigation</option>
+                                
+                                    <option value="Hydro-Electric Power Generation">Hydro-Electric Power Generation</option>
+                                
+                                    <option value="Flood Control & Drainage">Flood Control & Drainage</option>
+                                
+                                    <option value="EO Use of FW Economic">EO Use of FW Economic</option>
+                                
+                                    <option value="EO Specified Vegetable Growing Areas">EO Specified Vegetable Growing Areas</option>
+                                
+                                    <option value="EO Hydro-Electric Power Generation">EO Hydro-Electric Power Generation</option>
+                                
+                                    <option value="EO Flood Control & Drainage">EO Flood Control & Drainage</option>
+                                
+                                    <option value="Periphyton (chlorophyll-a)">Periphyton (chlorophyll-a)</option>
+                                
+                                    <option value="Ammonia (toxicity)">Ammonia (toxicity)</option>
+                                
+                                    <option value="Dissolved oxygen">Dissolved oxygen</option>
+                                
+                                    <option value="Suspended fine sediment (visual clarity)">Suspended fine sediment (visual clarity)</option>
+                                
+                                    <option value="Toxicants">Toxicants</option>
+                                
+                                    <option value="E.coli">E.coli</option>
+                                
+                                    <option value="Irrigation insufficient information">Irrigation insufficient information</option>
+                                
+                                    <option value="Commercial and industrial use insufficient information">Commercial and industrial use insufficient information</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+            <div id="config"></div>
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"borderWidth": 2, "color": "#fda519", "font": {"color": "white"}, "group": "Visions", "id": "Health \u0026 Wellbeing", "label": "Health \u0026 Wellbeing", "labelHighlightBold": true, "level": 1, "shape": "box", "title": "Where the health and wellbeing of the Manawat\u016b River and the drinking and washing water and mahinga kai needs of people are provided for, sustainable land and water practices will underpin the economic prosperity of the Region"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Animal DW", "label": "Animal drinking water", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Animal drinking water"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Domestic Food Supply", "label": "Domestic Food Supply", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Domestic Food Supply"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Commercial Use", "label": "Commercial and industrial use", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Commercial and industrial use"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Irrigation", "label": "Irrigation", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Irrigation, cultivation, and production of food and beverages"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Hydro-Electric Power Generation", "label": "Hydro-Electric Power Generation", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Hydro-Electric Power Generation"}, {"borderWidth": 2, "color": "#467b02", "font": {"color": "white"}, "group": "Values", "id": "Flood Control \u0026 Drainage", "label": "Flood Control \u0026 Drainage", "labelHighlightBold": true, "level": 2, "shape": "box", "title": "Flood Control \u0026 Drainage"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Use of FW Economic", "label": "Use of FW Economic", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Use of FW Economic"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Specified Vegetable Growing Areas", "label": "Specified Vegetable Growing Areas", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Specified Vegetable Growing Areas"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Hydro-Electric Power Generation", "label": "Hydro-Electric Power Generation", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Hydro-Electric Power Generation"}, {"borderWidth": 2, "color": "#0b5394", "font": {"color": "white"}, "group": "Environmental Outcomes", "id": "EO Flood Control \u0026 Drainage", "label": "Flood Control \u0026 Drainage", "labelHighlightBold": true, "level": 3, "shape": "box", "title": "EO Flood Control \u0026 Drainage"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Periphyton (chlorophyll-a)", "label": "Periphyton", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Periphyton (chlorophyll-a)"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Ammonia (toxicity)", "label": "Ammonia", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Ammonia (toxicity)"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Dissolved oxygen", "label": "Dissolved oxygen", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Dissolved oxygen"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "Suspended fine sediment (visual clarity)", "label": "Suspended fine sediment", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Suspended fine sediment (visual clarity)"}, {"borderWidth": 2, "color": "#ef90c2", "font": {"color": "white"}, "group": "Attributes", "id": "Toxicants", "label": "Toxicants", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "Toxicants"}, {"borderWidth": 2, "color": "#8368c9", "font": {"color": "white"}, "group": "Attributes", "id": "E.coli", "label": "E.coli", "labelHighlightBold": true, "level": 4, "shape": "box", "title": "E.coli"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Irrigation insufficient information", "label": "Irrigation insufficient information", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Irrigation, cultivation and production of food and beverages isufficient information to recommend targets. Requirements likely vary and it is anticipated that this value will be provided for by protecting other values insufficient information"}, {"borderWidth": 2, "color": "#ff1956", "font": {"color": "white"}, "group": "Targets", "id": "Commercial and industrial use insufficient information", "label": "Commercial and industrial use insufficient information", "labelHighlightBold": true, "level": 5, "shape": "box", "title": "Commercial and industrial use insufficient information to recommend targets. Requirements likely vary and it is anticipated that this value will be provided for by protecting other values"}]);
+                  edges = new vis.DataSet([{"arrows": "to", "from": "Animal DW", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Commercial Use", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Domestic Food Supply", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Domestic Food Supply", "to": "EO Specified Vegetable Growing Areas"}, {"arrows": "to", "from": "Flood Control \u0026 Drainage", "to": "EO Flood Control \u0026 Drainage"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Commercial Use"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Animal DW"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Domestic Food Supply"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Irrigation"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Hydro-Electric Power Generation"}, {"arrows": "to", "from": "Health \u0026 Wellbeing", "to": "Flood Control \u0026 Drainage"}, {"arrows": "to", "from": "Hydro-Electric Power Generation", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "Hydro-Electric Power Generation", "to": "EO Hydro-Electric Power Generation"}, {"arrows": "to", "from": "Irrigation", "to": "EO Use of FW Economic"}, {"arrows": "to", "from": "EO Use of FW Economic", "to": "Irrigation insufficient information"}, {"arrows": "to", "from": "EO Use of FW Economic", "to": "Commercial and industrial use insufficient information"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "Toxicants"}, {"arrows": "to", "from": "Irrigation insufficient information", "to": "E.coli"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Periphyton (chlorophyll-a)"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Ammonia (toxicity)"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Dissolved oxygen"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Suspended fine sediment (visual clarity)"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "Toxicants"}, {"arrows": "to", "from": "Commercial and industrial use insufficient information", "to": "E.coli"}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": true,
+        "filter": [
+            "physics"
+        ]
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "layout": {
+        "hierarchical": {
+            "blockShifting": true,
+            "edgeMinimization": true,
+            "enabled": true,
+            "levelSeparation": 150,
+            "parentCentralization": true,
+            "sortMethod": "hubsize",
+            "treeSpacing": 200
+        },
+        "improvedLayout": true,
+        "randomSeed": 0
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+                  // if this network requires displaying the configure window,
+                  // put it in its div
+                  options.configure["container"] = document.getElementById("config");
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
